@@ -75,7 +75,7 @@ def _build_impl(frame_sequence: pims.FramesSequence,
         p0_r, st_r, err_r = cv2.calcOpticalFlowPyrLK(image_1, image_0, p1, None, **lk_params)
 
         # Select good points
-        detected_mask = (st == 1).squeeze() & (st_r == 1).squeeze() & (abs(p0 - p0_r).sum(axis=-1) < 0.8)
+        detected_mask = (st == 1).squeeze() & (st_r == 1).squeeze() & (((p0 - p0_r) ** 2).sum(axis=-1) < 0.5)
         p1 = p1[detected_mask]
         ids = ids[detected_mask]
 
