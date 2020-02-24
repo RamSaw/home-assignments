@@ -29,8 +29,8 @@ def add_points(frame1: Tuple[FrameCorners, np.ndarray], frame2: Tuple[FrameCorne
     return len(new_points_with_ids)
 
 
-def get_points_cloud_size(point_positions):
-    return len(list(filter(lambda point_position: point_position is not None, point_positions)))
+def get_points_cloud_size(points):
+    return len(list(filter(lambda point: point is not None, points)))
 
 
 def track_frame(track_id: int,
@@ -41,8 +41,10 @@ def track_frame(track_id: int,
                 triangulation_parameters: TriangulationParameters
                 ) -> bool:
     frame_corners_ids = corner_storage[track_id].ids.reshape(-1)
-    existing_frame_corner_ids, frame_corners_points, existing_points = \
-        zip(*[(i, pt, points[i]) for i, pt in zip(frame_corners_ids, corner_storage[track_id].points) if points[i] is not None])
+    existing = [(i, pt, points[i]) for i, pt in zip(frame_corners_ids, corner_storage[track_id].points) if points[i] is not None]
+    if len(existing) < 5:
+        return False
+    existing_frame_corner_ids, frame_corners_points, existing_points = zip(*existing)
     existing_frame_corner_ids, frame_corners_points, existing_points = \
         np.array(existing_frame_corner_ids), np.array(frame_corners_points), np.array(existing_points)
 
@@ -72,7 +74,7 @@ def track_frame(track_id: int,
 def init_from_known_views(known_view_1: Tuple[int, Pose],
                           known_view_2: Tuple[int, Pose],
                           track: List[Optional[np.ndarray]],
-                          point_positions: List[Optional[np.ndarray]],
+                          points: List[Optional[np.ndarray]],
                           corner_storage: CornerStorage,
                           intrinsic_mat: np.ndarray,
                           triangulation_parameters: TriangulationParameters):
@@ -82,7 +84,7 @@ def init_from_known_views(known_view_1: Tuple[int, Pose],
     track[known_view_2[0]] = pose_to_view_mat3x4(known_view_2[1])
     number_of_added_points = add_points((corner_storage[known_view_1[0]], track[known_view_1[0]]),
                                         (corner_storage[known_view_2[0]], track[known_view_2[0]]),
-                                        point_positions, intrinsic_mat, triangulation_parameters)
+                                        points, intrinsic_mat, triangulation_parameters)
     if number_of_added_points != 0:
         print(f'New triangled points: {number_of_added_points}, frames: {known_view_1[0]} -> {known_view_2[0]}')
 
