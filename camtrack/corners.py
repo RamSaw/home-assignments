@@ -36,12 +36,12 @@ class _CornerStorageBuilder:
 
 def _build_impl(frame_sequence: pims.FramesSequence,
                 builder: _CornerStorageBuilder) -> None:
-    max_corners = 500
+    max_corners = 1000
     # params for ShiTomasi corner detection
     feature_params = dict(maxCorners=max_corners,
-                          qualityLevel=0.01,
-                          minDistance=7,
-                          blockSize=7)
+                          qualityLevel=0.15,
+                          minDistance=6,
+                          blockSize=5)
 
     # Parameters for lucas kanade optical flow
     lk_params = dict(winSize=(15, 15),
@@ -75,23 +75,25 @@ def _build_impl(frame_sequence: pims.FramesSequence,
         p0_r, st_r, err_r = cv2.calcOpticalFlowPyrLK(image_1, image_0, p1, None, **lk_params)
 
         # Select good points
-        detected_mask = (st == 1).squeeze() & (st_r == 1).squeeze() & (((p0 - p0_r) ** 2).sum(axis=-1) < 0.5)
+        detected_mask = (st == 1).squeeze() & (st_r == 1).squeeze() & (((p0 - p0_r) ** 2).sum(axis=-1) < 0.6)
         p1 = p1[detected_mask]
         ids = ids[detected_mask]
 
         if len(p1) < max_corners:
             mask_of_interest = create_mask_of_interest(p1, image_1.shape)
-            new_p1_all = cv2.goodFeaturesToTrack(image_1_gray, mask=mask_of_interest, **feature_params).squeeze()
-            new_ids = []
-            new_p1 = []
-            i = 0
-            while i < len(new_p1_all) and len(new_p1) + len(p1) < max_corners:
-                new_p1.append(new_p1_all[i])
-                new_ids.append(next_id)
-                next_id += 1
-                i += 1
-            ids = np.concatenate([ids, new_ids])
-            p1 = np.concatenate([p1, new_p1])
+            new_p1_all = cv2.goodFeaturesToTrack(image_1_gray, mask=mask_of_interest, **feature_params)
+            if new_p1_all is not None:
+                new_p1_all = new_p1_all.squeeze(axis=1)
+                new_ids = []
+                new_p1 = []
+                i = 0
+                while i < len(new_p1_all) and len(new_p1) + len(p1) < max_corners:
+                    new_p1.append(new_p1_all[i])
+                    new_ids.append(next_id)
+                    next_id += 1
+                    i += 1
+                ids = np.concatenate([ids, new_ids])
+                p1 = np.concatenate([p1, new_p1])
 
         corners = FrameCorners(
             ids=ids,
