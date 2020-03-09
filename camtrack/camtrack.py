@@ -21,6 +21,8 @@ def add_points(frame1: Tuple[FrameCorners, np.ndarray], frame2: Tuple[FrameCorne
                triangulation_parameters: TriangulationParameters
                ) -> int:
     correspondences = build_correspondences(frame1[0], frame2[0])
+    if len(correspondences.points_1) == 0 or len(correspondences.points_2) == 0:
+        return 0
     possible_new_points, ids, _ = triangulate_correspondences(correspondences, frame1[1], frame2[1],
                                                               intrinsic_mat, triangulation_parameters)
     new_points_with_ids = list(filter(lambda el: points[el[1]] is None, zip(possible_new_points, ids)))
